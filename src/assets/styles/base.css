@@ -1,0 +1,631 @@
+/* ==========================================================================
+   全局基础样式：重置、排版、通用面块 / 药丸 / 表格 / 表单
+
+   与学生端 base.css 同源：同一套圆角、面块、药丸与骨架屏，
+   教师端只把密度调紧一档（管理后台表格多），配色不做第二套。
+   ========================================================================== */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#app {
+  height: 100%;
+}
+
+/**
+ * 禁止页面回弹：页面滚到最顶 / 最底后继续滑动时，
+ * 不再被系统的「橡皮筋」效果拽着上下位移（吸顶顶栏也不会跟着晃）。
+ * html 与 body 都要写：前者管视口层的链式滚动，后者管文档滚动容器本身。
+ */
+html,
+body {
+  overscroll-behavior: none;
+  overscroll-behavior-y: none;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink-1);
+  font-family: var(--font-ui);
+  font-size: 14px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  -webkit-tap-highlight-color: transparent;
+}
+
+h1,
+h2,
+h3,
+h4,
+p,
+figure {
+  margin: 0;
+}
+
+ul,
+ol {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button {
+  font-family: inherit;
+}
+
+:focus-visible {
+  outline: 2px solid var(--brand-500);
+  outline-offset: 2px;
+  border-radius: var(--r-xs);
+}
+
+::selection {
+  background: var(--brand-100);
+  color: var(--brand-700);
+}
+
+/* —— 滚动条：与学生端同一处理 —— */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #c8d6e8 transparent;
+}
+
+.app-nav,
+.el-drawer__body,
+.el-dialog__body {
+  overscroll-behavior: contain;
+}
+
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: #c8d6e8;
+  border-radius: var(--r-pill);
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* --------------------------------------------------------------------------
+   排版工具
+   -------------------------------------------------------------------------- */
+
+/* 数字一律用等宽数字字面，避免指标刷新时跳动 */
+.num {
+  font-family: var(--font-num);
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+  letter-spacing: 0.01em;
+}
+
+.muted {
+  color: var(--ink-3);
+}
+
+/* —— 分数配色：≥80 绿 / 60-79 橙 / <60 红 —— */
+.score--good {
+  color: #2f8a08;
+  font-weight: 600;
+}
+
+.score--mid {
+  color: #b35c00;
+  font-weight: 600;
+}
+
+.score--bad {
+  color: var(--danger-ink);
+  font-weight: 600;
+}
+
+.link {
+  color: var(--brand-500);
+  cursor: pointer;
+}
+
+/* --------------------------------------------------------------------------
+   通用面块：白底 + 12px 圆角 + 极轻投影（与学生端卡片同一块面）
+   -------------------------------------------------------------------------- */
+
+.panel {
+  background: var(--surface);
+  border: 1px solid var(--line-soft);
+  border-radius: var(--r-md);
+  box-shadow: var(--sh-1);
+}
+
+.panel--plain {
+  box-shadow: none;
+}
+
+.panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 15px 20px;
+  border-bottom: 1px solid var(--line-soft);
+}
+
+.panel-head__title {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 15.5px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+
+.panel-head__extra {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.panel-body {
+  padding: 20px;
+}
+
+/* --------------------------------------------------------------------------
+   状态药丸：浅底 + 同色字 + 4px 方角（学生端同款）
+   -------------------------------------------------------------------------- */
+
+/* --------------------------------------------------------------------------
+   弹窗里的表单结构（新建项目 / 下发任务共用）
+
+   大表单按「块」组织：每块一个小标题 + 一行说明，块内用 2 / 3 列栅格，
+   不再让每个字段各占一整行 —— 弹窗才不会被拉成一整屏。
+   -------------------------------------------------------------------------- */
+
+.block {
+  padding: 14px 16px;
+  margin-bottom: 16px;
+  border: 1px solid var(--line-soft);
+  border-radius: var(--r-md);
+  background: var(--surface-2);
+}
+
+/* 不带底色的块：用于弹窗上半部分，视觉更轻 */
+.block--plain {
+  padding: 0;
+  margin-bottom: 14px;
+  border: 0;
+  background: transparent;
+}
+
+.block--plain .block__head {
+  padding-bottom: 6px;
+  margin-bottom: 10px;
+  border-bottom: 1px solid var(--line-soft);
+}
+
+.block__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+
+.block__title {
+  font-size: 13.5px;
+  font-weight: 700;
+}
+
+.block__hint {
+  margin-top: 2px;
+  color: var(--ink-3);
+  font-size: 12px;
+  line-height: 1.7;
+}
+
+.block__tools {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.grid-2 {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0 16px;
+}
+
+.grid-3 {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0 16px;
+}
+
+/* 块里最后一个表单项不再留多余下边距 */
+.form-item--last {
+  margin-bottom: 4px;
+}
+
+/* 文字型小按钮：密度比 el-button 高，适合卡内操作 */
+.icon-op {
+  height: 26px;
+  padding: 0 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-chip);
+  background: var(--surface);
+  color: var(--ink-2);
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.16s ease, border-color 0.16s ease, color 0.16s ease;
+}
+
+.icon-op:hover:not(:disabled) {
+  border-color: var(--brand-300);
+  background: var(--brand-050);
+  color: var(--brand-600);
+}
+
+.icon-op:disabled {
+  color: var(--ink-3);
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.icon-op--danger {
+  color: var(--danger-ink);
+}
+
+.icon-op--danger:hover:not(:disabled) {
+  border-color: var(--danger-line);
+  background: var(--danger-bg);
+  color: var(--danger-ink);
+}
+
+/* 上传入口：虚线小胶囊 */
+.upload-chip {
+  height: 30px;
+  padding: 0 12px;
+  border: 1px dashed var(--line-strong);
+  border-radius: var(--r-chip);
+  background: var(--surface);
+  color: var(--ink-2);
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color 0.16s ease, color 0.16s ease, background 0.16s ease;
+}
+
+.upload-chip:hover {
+  border-color: var(--brand-400);
+  background: var(--brand-050);
+  color: var(--brand-600);
+}
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 10px;
+  border-radius: var(--r-chip);
+  border: 1px solid transparent;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 20px;
+  white-space: nowrap;
+}
+
+.pill--todo {
+  color: var(--brand-600);
+  background: var(--todo-bg);
+  border-color: var(--todo-line);
+}
+
+.pill--done {
+  color: #2f8a08;
+  background: var(--ok-bg);
+  border-color: var(--ok-line);
+}
+
+.pill--wip {
+  color: #b35c00;
+  background: var(--wip-bg);
+  border-color: var(--wip-line);
+}
+
+.pill--lock {
+  color: var(--ink-3);
+  background: var(--lock-bg);
+  border-color: var(--lock-line);
+}
+
+.pill--danger {
+  color: var(--danger-ink);
+  background: var(--danger-bg);
+  border-color: var(--danger-line);
+}
+
+.pill--violet {
+  color: var(--violet);
+  background: var(--violet-bg);
+  border-color: var(--violet-line);
+}
+
+.pill--orange {
+  color: #b35c00;
+  background: var(--orange-bg);
+  border-color: var(--orange-line);
+}
+
+/* —— 技能标签：浅蓝描边小胶囊 —— */
+.tag-skill {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 10px;
+  border: 1px solid var(--todo-line);
+  border-radius: var(--r-chip);
+  background: var(--todo-bg);
+  color: var(--brand-600);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 20px;
+  white-space: nowrap;
+}
+
+.tag-plain {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-chip);
+  background: var(--surface-2);
+  color: var(--ink-2);
+  font-size: 12px;
+  line-height: 20px;
+}
+
+/* --------------------------------------------------------------------------
+   骨架屏：加载态不使用整页遮罩
+   -------------------------------------------------------------------------- */
+
+.skeleton {
+  position: relative;
+  overflow: hidden;
+  background: #eef3fa;
+  border-radius: var(--r-sm);
+}
+
+.skeleton::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.75), transparent);
+  animation: skeleton-sweep 1.4s ease-in-out infinite;
+}
+
+@keyframes skeleton-sweep {
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+/* --------------------------------------------------------------------------
+   过渡：卡片入场，短促、有节奏
+   -------------------------------------------------------------------------- */
+
+.rise-enter-active {
+  transition: opacity 0.32s ease, transform 0.32s cubic-bezier(0.22, 0.68, 0.35, 1);
+}
+
+.rise-enter-from {
+  opacity: 0;
+  transform: translateY(10px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   Element Plus 细节对齐
+   -------------------------------------------------------------------------- */
+
+.el-button {
+  font-weight: 600;
+}
+
+.el-button--primary {
+  --el-button-bg-color: var(--brand-500);
+  --el-button-border-color: var(--brand-500);
+  --el-button-hover-bg-color: var(--brand-400);
+  --el-button-hover-border-color: var(--brand-400);
+  --el-button-active-bg-color: var(--brand-600);
+  --el-button-active-border-color: var(--brand-600);
+}
+
+.el-button--default {
+  --el-button-hover-text-color: var(--brand-600);
+  --el-button-hover-border-color: var(--brand-300);
+  --el-button-hover-bg-color: var(--brand-050);
+}
+
+.el-table {
+  --el-table-header-bg-color: #f5f9ff;
+  --el-table-header-text-color: var(--ink-2);
+  font-size: 13px;
+}
+
+.el-table th.el-table__cell {
+  background: #f5f9ff;
+  font-weight: 600;
+}
+
+.el-table .el-table__cell {
+  padding: 10px 0;
+}
+
+.el-table__inner-wrapper::before {
+  display: none;
+}
+
+.el-tabs__header {
+  margin-bottom: 0;
+}
+
+.el-tabs__nav-wrap::after {
+  height: 1px;
+  background-color: var(--line);
+}
+
+.el-tabs__item {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--ink-2);
+}
+
+.el-tabs__item.is-active {
+  color: var(--brand-500);
+  font-weight: 700;
+}
+
+.el-dialog {
+  border-radius: var(--r-lg);
+}
+
+.el-dialog__header {
+  margin-right: 0;
+  padding: 20px 24px 16px;
+  border-bottom: 1px solid var(--line-soft);
+}
+
+.el-dialog__title {
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--ink-1);
+}
+
+.el-dialog__body {
+  padding: 20px 24px;
+}
+
+.el-dialog__footer {
+  padding: 14px 24px 20px;
+  border-top: 1px solid var(--line-soft);
+}
+
+.el-form-item__label {
+  color: var(--ink-2);
+  font-size: 13px;
+}
+
+.el-pagination {
+  --el-pagination-font-size: 13px;
+}
+
+.el-input__wrapper,
+.el-select__wrapper,
+.el-textarea__inner {
+  border-radius: var(--r-xs);
+}
+
+.el-drawer__header {
+  margin-bottom: 0;
+  padding: 18px 22px;
+  border-bottom: 1px solid var(--line-soft);
+  color: var(--ink-1);
+  font-weight: 700;
+}
+
+.el-drawer__body {
+  padding: 20px 22px;
+}
+
+/* --------------------------------------------------------------------------
+   打印：只保留内容区（证书台账「打印」用），隐藏侧栏、顶栏、工具条与按钮
+   -------------------------------------------------------------------------- */
+
+@page {
+  margin: 12mm;
+}
+
+@media print {
+  html,
+  body,
+  #app {
+    height: auto;
+    background: #fff;
+  }
+
+  .app-nav,
+  .app-header,
+  .el-tabs__header,
+  .toolbar,
+  .pager,
+  .el-pagination,
+  .el-button,
+  .el-message,
+  .el-dialog,
+  .el-overlay,
+  .el-upload {
+    display: none !important;
+  }
+
+  .layout,
+  .layout__body {
+    display: block !important;
+  }
+
+  .layout__main,
+  .layout__content {
+    padding: 0 !important;
+  }
+
+  .panel {
+    border: 0;
+    box-shadow: none;
+  }
+
+  .panel-head {
+    padding: 0 0 10px;
+  }
+
+  .el-table {
+    font-size: 12px;
+    --el-table-border-color: #d6dfec;
+  }
+
+  .el-table th.el-table__cell {
+    background: #f0f6ff !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .el-table td.el-table__cell,
+  .el-table th.el-table__cell {
+    padding: 6px 0;
+  }
+}

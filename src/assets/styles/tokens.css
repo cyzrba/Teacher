@@ -1,0 +1,150 @@
+/* ==========================================================================
+   设计令牌 · 岗位闯关式实训平台（教师端）
+
+   色值取自学生端（Student/src/assets/styles/tokens.css）：
+   页面底 #F0F6FF / 卡片白底 / 主色 #1677FF / 同一套状态色，
+   保证教师端与学生端是同一个平台的两面，而不是两个系统。
+   教师端在此之上只补三样学生端没有的东西：
+   ① 管理后台的密度（表格、表单、分页）；
+   ② 左侧导航的浅色方案（白底 + 蓝色高亮块 + 左侧 3px 竖线）；
+   ③ 顶栏渐变（与学生端顶栏同款，承载身份与三项指标）。
+   ========================================================================== */
+
+:root {
+  /* —— 主色（顶栏渐变 / 主按钮 / 导航高亮 / 图表主色） —— */
+  --brand-700: #1259bc;
+  --brand-600: #1e7be8;
+  --brand-500: #1677ff;
+  --brand-400: #4a95f7;
+  --brand-300: #9cc6fb;
+  --brand-100: #d6e7ff;
+  --brand-050: #e8f1ff;
+
+  /* —— 状态色：与学生端同口径（已完成 / 进行中 / 可挑战 / 未解锁） —— */
+  --ok: #52c41a;
+  --ok-bg: #f2fceb;
+  --ok-line: #b7eb8f;
+  --wip: #fa8c16;
+  --wip-bg: #fff6e9;
+  --wip-line: #ffd591;
+  --todo: #1677ff;
+  --todo-bg: #e8f1ff;
+  --todo-line: #a8ccff;
+  --lock: #bfbfbf;
+  --lock-bg: #f5f5f5;
+  --lock-line: #e5e6eb;
+  --danger: #f5222d;
+  --danger-bg: #fff1f0;
+  --danger-line: #ffccc7;
+  --violet: #722ed1;
+  --violet-bg: #f6f0ff;
+  --violet-line: #d9c7ff;
+  --orange: #fa8c16;
+  --orange-bg: #fff6e9;
+  --orange-line: #ffd591;
+  --gold: #ffc53d;
+  /* 深一档的告警红：分数、删除类文案用，保证在白底上的对比度 */
+  --danger-ink: #cf1322;
+
+  /* —— 面 —— */
+  --bg: #f0f6ff;
+  --surface: #ffffff;
+  --surface-2: #f7faff;
+  --surface-3: #eef4ff;
+  --line: #e5e9f0;
+  --line-soft: #eef2f8;
+  --line-strong: #d6dfec;
+
+  /* —— 字 —— */
+  --ink-1: #1f2329;
+  --ink-2: #646a73;
+  --ink-3: #8f959e;
+  --ink-inv: #ffffff;
+  --ink-inv-2: rgba(255, 255, 255, 0.72);
+
+  /* —— 左侧导航：浅色方案（与学生端同一套观感：白底 + 蓝字高亮） —— */
+  --side-bg: var(--surface);
+  --side-line: var(--line);
+  --side-ink: var(--ink-2);
+  --side-ink-strong: var(--ink-1);
+  --side-title: var(--ink-1);
+  --side-sub: var(--ink-3);
+  --side-active-bg: var(--brand-050);
+  --side-active-ink: var(--brand-600);
+  --side-hover-bg: var(--surface-2);
+  --side-hover-ink: var(--ink-1);
+  --side-icon: var(--ink-3);
+  --side-hover-icon: var(--brand-500);
+
+  /* —— 圆角 / 阴影：与学生端一致（卡片 12px、控件 6px、标签 4px） —— */
+  --r-xs: 6px;
+  --r-sm: 8px;
+  --r-md: 12px;
+  --r-lg: 16px;
+  --r-xl: 22px;
+  --r-pill: 999px;
+  --r-chip: 4px;
+  --r-bar: 2px;
+  --sh-1: 0 1px 2px rgba(31, 35, 41, 0.05), 0 2px 8px rgba(31, 35, 41, 0.04);
+  --sh-2: 0 6px 18px rgba(30, 123, 232, 0.1), 0 2px 6px rgba(31, 35, 41, 0.05);
+  --sh-3: 0 18px 44px rgba(18, 60, 120, 0.16);
+
+  /* —— 字体 —— */
+  --font-ui: "PingFang SC", "HarmonyOS Sans SC", "Microsoft YaHei UI", "Microsoft YaHei",
+    system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+  --font-num: "Bahnschrift", "DIN Alternate", "Oswald", "Segoe UI Variable Display", "Segoe UI",
+    var(--font-ui);
+
+  /* —— 骨架尺寸 —— */
+  --shell-max: 100%;
+  --side-w: 236px;
+  --header-h: 92px;
+  --shell-pad: clamp(20px, 1.5vw, 40px);
+
+  /* —— Element Plus 主题接管（与学生端同一份，教师端补表格 / 弹窗） —— */
+  --el-color-primary: #1677ff;
+  --el-color-primary-light-3: #4a95f7;
+  --el-color-primary-light-5: #7fb6f5;
+  --el-color-primary-light-7: #a8ccff;
+  --el-color-primary-light-8: #c7ddff;
+  --el-color-primary-light-9: #e8f1ff;
+  --el-color-primary-dark-2: #1259bc;
+  --el-color-success: #52c41a;
+  --el-color-warning: #fa8c16;
+  --el-color-danger: #f5222d;
+  --el-color-error: #f5222d;
+  --el-font-family: var(--font-ui);
+  --el-border-radius-base: 6px;
+  --el-border-radius-small: 4px;
+  --el-border-color: #e5e9f0;
+  --el-border-color-light: #eef2f8;
+  --el-border-color-lighter: #eef2f8;
+  --el-text-color-primary: #1f2329;
+  --el-text-color-regular: #646a73;
+  --el-text-color-secondary: #8f959e;
+  --el-fill-color-light: #f7faff;
+  --el-fill-color-blank: #ffffff;
+  --el-table-header-bg-color: #f5f9ff;
+  --el-table-header-text-color: #646a73;
+  --el-table-border-color: #eef2f8;
+  --el-table-row-hover-bg-color: #f7faff;
+  --el-dialog-border-radius: 12px;
+  --el-messagebox-border-radius: 12px;
+}
+
+/* --------------------------------------------------------------------------
+   窄屏：侧栏逐级收窄，把宽度让给内容区
+   -------------------------------------------------------------------------- */
+
+@media (max-width: 1500px) {
+  :root {
+    --side-w: 208px;
+  }
+}
+
+@media (max-width: 1200px) {
+  :root {
+    --side-w: 76px;
+    --shell-pad: 18px;
+  }
+}
