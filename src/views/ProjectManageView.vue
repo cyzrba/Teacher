@@ -131,7 +131,6 @@ interface ModuleDraft {
   /** 已存在于项目里的关卡 id；新建项目中为空 */
   moduleId?: number
   templateId: number
-  stageKey: string
   stageName: string
   weight: number
   required: boolean
@@ -211,7 +210,6 @@ async function openCreate(): Promise<void> {
   // 新建项目默认带上七个标准模块，权重按模块库默认值（合计 100）
   moduleDrafts.value = store.templates.map((template) => ({
     templateId: template.id,
-    stageKey: template.stage_key,
     stageName: template.stage_name,
     weight: num(template.default_weight),
     required: template.default_required,
@@ -236,7 +234,6 @@ async function openEdit(row: ProjectRead): Promise<void> {
   moduleDrafts.value = (detail.modules ?? []).map((item) => ({
     moduleId: item.id,
     templateId: item.template_id,
-    stageKey: item.stage_key,
     stageName: item.stage_name,
     weight: num(item.weight),
     required: item.required,
@@ -261,7 +258,6 @@ function addTemplateToDraft(): void {
     ...moduleDrafts.value,
     {
       templateId: template.id,
-      stageKey: template.stage_key,
       stageName: template.stage_name,
       weight: num(template.default_weight),
       required: template.default_required,
@@ -514,7 +510,6 @@ const filteredTemplates = computed(() => {
   return store.templates.filter(
     (item) =>
       item.stage_name.toLowerCase().includes(target) ||
-      item.stage_key.toLowerCase().includes(target) ||
       (item.description ?? '').toLowerCase().includes(target),
   )
 })
@@ -534,7 +529,6 @@ const editingTemplateId = ref<number | null>(null)
 const templateFormRef = ref<FormInstance>()
 
 const templateForm = reactive({
-  stage_key: '',
   stage_name: '',
   description: '',
   default_required: true,
@@ -545,7 +539,6 @@ const templateForm = reactive({
 })
 
 const templateRules: FormRules = {
-  stage_key: [{ required: true, message: '请输入模块编码', trigger: 'blur' }],
   stage_name: [{ required: true, message: '请输入模块名称', trigger: 'blur' }],
 }
 
@@ -554,7 +547,6 @@ function openTemplateCreate(): void {
   const nextSort =
     store.templates.reduce((max, item) => Math.max(max, item.sort_no ?? 0), 0) + 1
   Object.assign(templateForm, {
-    stage_key: '',
     stage_name: '',
     description: '',
     default_required: true,
@@ -569,7 +561,6 @@ function openTemplateCreate(): void {
 function openTemplateEdit(row: StageTemplate): void {
   editingTemplateId.value = row.id
   Object.assign(templateForm, {
-    stage_key: row.stage_key,
     stage_name: row.stage_name,
     description: row.description ?? '',
     default_required: row.default_required,
@@ -586,7 +577,6 @@ async function submitTemplate(): Promise<void> {
   if (!valid) return
 
   const payload = {
-    stage_key: templateForm.stage_key.trim().toUpperCase(),
     stage_name: templateForm.stage_name.trim(),
     description: templateForm.description.trim() || null,
     default_required: templateForm.default_required,
@@ -774,7 +764,7 @@ onMounted(async () => {
               <el-input
                 v-model="templateKeyword"
                 class="toolbar__search"
-                placeholder="搜索模块名称 / 编码"
+                placeholder="搜索模块名称 / 说明"
                 clearable
               />
               <el-button type="primary" round @click="openTemplateCreate">＋ 新增模块</el-button>
@@ -790,10 +780,7 @@ onMounted(async () => {
             <el-table-column prop="sort_no" label="排序" width="80" />
             <el-table-column label="模块名称" min-width="180">
               <template #default="{ row }">
-                <div class="cell-main">
-                  <p class="cell-main__title">{{ row.stage_name }}</p>
-                  <p class="cell-main__code num">{{ row.stage_key }}</p>
-                </div>
+                <span class="cell-main__title">{{ row.stage_name }}</span>
               </template>
             </el-table-column>
             <el-table-column label="说明" min-width="240">
@@ -961,7 +948,6 @@ onMounted(async () => {
               <header class="module__head">
                 <span class="module__index num">{{ index + 1 }}</span>
                 <span class="module__name">{{ draft.stageName }}</span>
-                <span class="module__code num">{{ draft.stageKey }}</span>
                 <div class="module__ops">
                   <button class="icon-op" type="button" title="上移" :disabled="index === 0" @click="moveDraft(index, -1)">
                     上移
@@ -1092,14 +1078,9 @@ onMounted(async () => {
       align-center
     >
       <el-form ref="templateFormRef" :model="templateForm" :rules="templateRules" label-position="top">
-        <div class="form-row">
-          <el-form-item label="模块编码" prop="stage_key">
-            <el-input v-model="templateForm.stage_key" placeholder="如：MODEL_TRAINING（全局唯一）" />
-          </el-form-item>
-          <el-form-item label="模块名称" prop="stage_name">
-            <el-input v-model="templateForm.stage_name" placeholder="如：模型训练" />
-          </el-form-item>
-        </div>
+        <el-form-item label="模块名称" prop="stage_name">
+          <el-input v-model="templateForm.stage_name" placeholder="如：模型训练（名称唯一）" />
+        </el-form-item>
 
         <el-form-item label="模块说明">
           <el-input
@@ -1272,8 +1253,7 @@ onMounted(async () => {
   font-weight: 600;
 }
 
-.cell-main__desc,
-.cell-main__code {
+.cell-main__desc {
   color: var(--ink-3);
   font-size: 12px;
   line-height: 1.6;
@@ -1367,11 +1347,6 @@ onMounted(async () => {
 .module__name {
   font-size: 14px;
   font-weight: 700;
-}
-
-.module__code {
-  color: var(--ink-3);
-  font-size: 11.5px;
 }
 
 .module__ops {

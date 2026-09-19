@@ -19,14 +19,12 @@ export interface JobPayload {
 }
 
 export interface SkillTreePayload {
-  tree_code: string
   tree_name: string
   description?: string | null
   status?: 'ENABLED' | 'DISABLED'
 }
 
 export interface SkillNodePayload {
-  node_code?: string
   node_name?: string
   description?: string | null
   unlock_note?: string | null

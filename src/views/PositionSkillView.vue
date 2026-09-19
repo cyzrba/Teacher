@@ -204,7 +204,6 @@ const filteredNodes = computed(() => {
   return store.nodes.filter(
     (item) =>
       item.node_name.toLowerCase().includes(target) ||
-      item.node_code.toLowerCase().includes(target) ||
       (item.description ?? '').toLowerCase().includes(target),
   )
 })
@@ -233,27 +232,24 @@ const editingTreeId = ref<number | null>(null)
 const treeFormRef = ref<FormInstance>()
 
 const treeForm = reactive({
-  tree_code: '',
   tree_name: '',
   description: '',
   status: 'ENABLED' as 'ENABLED' | 'DISABLED',
 })
 
 const treeRules: FormRules = {
-  tree_code: [{ required: true, message: '请输入技能树编码', trigger: 'blur' }],
   tree_name: [{ required: true, message: '请输入技能树名称', trigger: 'blur' }],
 }
 
 function openTreeCreate(): void {
   editingTreeId.value = null
-  Object.assign(treeForm, { tree_code: '', tree_name: '', description: '', status: 'ENABLED' })
+  Object.assign(treeForm, { tree_name: '', description: '', status: 'ENABLED' })
   treeDialogVisible.value = true
 }
 
 function openTreeEdit(row: SkillTreeRead): void {
   editingTreeId.value = row.id
   Object.assign(treeForm, {
-    tree_code: row.tree_code,
     tree_name: row.tree_name,
     description: row.description ?? '',
     status: row.status,
@@ -266,7 +262,6 @@ async function submitTree(): Promise<void> {
   if (!valid) return
 
   const payload = {
-    tree_code: treeForm.tree_code.trim().toUpperCase(),
     tree_name: treeForm.tree_name.trim(),
     description: treeForm.description.trim() || null,
     status: treeForm.status,
@@ -320,7 +315,6 @@ const nodeSaving = ref(false)
 const prerequisiteIds = ref<number[]>([])
 
 const nodeForm = reactive({
-  node_code: '',
   node_name: '',
   description: '',
   unlock_note: '',
@@ -328,7 +322,6 @@ const nodeForm = reactive({
 })
 
 const nodeRules: FormRules = {
-  node_code: [{ required: true, message: '请输入技能点编码', trigger: 'blur' }],
   node_name: [{ required: true, message: '请输入技能点名称', trigger: 'blur' }],
 }
 
@@ -345,7 +338,6 @@ async function openNodeCreate(): Promise<void> {
   editingNodeId.value = null
   prerequisiteIds.value = []
   Object.assign(nodeForm, {
-    node_code: '',
     node_name: '',
     description: '',
     unlock_note: '',
@@ -357,7 +349,6 @@ async function openNodeCreate(): Promise<void> {
 async function openNodeEdit(row: SkillTreeNode): Promise<void> {
   editingNodeId.value = row.id
   Object.assign(nodeForm, {
-    node_code: row.node_code,
     node_name: row.node_name,
     description: row.description ?? '',
     unlock_note: row.unlock_note ?? '',
@@ -372,7 +363,6 @@ async function submitNode(): Promise<void> {
   if (!valid || !activeTreeId.value) return
 
   const payload = {
-    node_code: nodeForm.node_code.trim().toUpperCase(),
     node_name: nodeForm.node_name.trim(),
     description: nodeForm.description.trim() || null,
     unlock_note: nodeForm.unlock_note.trim() || null,
@@ -570,7 +560,6 @@ onMounted(async () => {
                       {{ activeTreeId === tree.id ? store.nodes.length : '' }}
                     </span>
                   </button>
-                  <p class="sys-item__code num">{{ tree.tree_code }}</p>
                 </li>
               </ul>
               <p v-else class="systems__empty">还没有技能树，点右上「＋ 新建」创建一棵。</p>
@@ -611,7 +600,7 @@ onMounted(async () => {
                   <el-input
                     v-model="nodeKeyword"
                     class="toolbar__search"
-                    placeholder="搜索技能点名称 / 编码"
+                    placeholder="搜索技能点名称 / 说明"
                     clearable
                   />
                   <span class="points__stat">技能点 <b class="num">{{ store.nodes.length }}</b></span>
@@ -626,10 +615,7 @@ onMounted(async () => {
                 >
                   <el-table-column label="技能点" min-width="180">
                     <template #default="{ row }">
-                      <div class="cell-main">
-                        <p class="cell-main__title">{{ row.node_name }}</p>
-                        <p class="cell-main__code num">{{ row.node_code }}</p>
-                      </div>
+                      <span class="cell-main__title">{{ row.node_name }}</span>
                     </template>
                   </el-table-column>
                   <el-table-column label="说明" min-width="180">
@@ -778,14 +764,9 @@ onMounted(async () => {
       align-center
     >
       <el-form ref="treeFormRef" :model="treeForm" :rules="treeRules" label-position="top">
-        <div class="grid-2">
-          <el-form-item label="技能树编码" prop="tree_code">
-            <el-input v-model="treeForm.tree_code" placeholder="如：DEEP_LEARNING（唯一）" />
-          </el-form-item>
-          <el-form-item label="技能树名称" prop="tree_name">
-            <el-input v-model="treeForm.tree_name" placeholder="如：深度学习系" />
-          </el-form-item>
-        </div>
+        <el-form-item label="技能树名称" prop="tree_name">
+          <el-input v-model="treeForm.tree_name" placeholder="如：深度学习系（名称唯一）" />
+        </el-form-item>
 
         <el-form-item label="说明">
           <el-input
@@ -818,14 +799,9 @@ onMounted(async () => {
       align-center
     >
       <el-form ref="nodeFormRef" :model="nodeForm" :rules="nodeRules" label-position="top">
-        <div class="grid-2">
-          <el-form-item label="技能点编码" prop="node_code">
-            <el-input v-model="nodeForm.node_code" placeholder="如：MODEL_TRAIN（全局唯一）" />
-          </el-form-item>
-          <el-form-item label="技能点名称" prop="node_name">
-            <el-input v-model="nodeForm.node_name" placeholder="如：模型训练" />
-          </el-form-item>
-        </div>
+        <el-form-item label="技能点名称" prop="node_name">
+          <el-input v-model="nodeForm.node_name" placeholder="如：模型训练（名称全局唯一）" />
+        </el-form-item>
 
         <el-form-item :label="`所属技能树（${activeTree?.tree_name ?? '--'}）`">
           <span class="form-static">
@@ -963,11 +939,6 @@ onMounted(async () => {
   line-height: 1.6;
 }
 
-.cell-main__code {
-  color: var(--ink-3);
-  font-size: 11.5px;
-}
-
 .prereq {
   color: var(--brand-600);
   font-size: 12.5px;
@@ -1084,13 +1055,6 @@ onMounted(async () => {
   flex: none;
   color: var(--brand-600);
   font-size: 12px;
-}
-
-.sys-item__code {
-  padding: 0 10px;
-  color: var(--ink-3);
-  font-size: 10.5px;
-  letter-spacing: 0.02em;
 }
 
 .systems__empty {

@@ -24,7 +24,6 @@ export interface AttemptStageDetail {
   attempt_id: number
   project_module_id: number
   stage_no: number
-  stage_key: string | null
   stage_name: string | null
   required: boolean
   weight: string

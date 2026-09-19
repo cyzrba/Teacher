@@ -161,7 +161,6 @@ export interface SkillTreeNode {
   id: number
   tree_id: number
   tree_name?: string
-  node_code: string
   node_name: string
   description: string | null
   unlock_note: string | null
@@ -173,7 +172,6 @@ export interface SkillTreeNode {
 
 export interface SkillTreeRead {
   id: number
-  tree_code: string
   tree_name: string
   description: string | null
   status: 'ENABLED' | 'DISABLED'
@@ -185,7 +183,6 @@ export interface SkillTreeRead {
 
 export interface StageTemplate {
   id: number
-  stage_key: string
   stage_name: string
   description: string | null
   default_required: boolean
@@ -207,7 +204,6 @@ export interface ProjectModule {
   project_id: number
   template_id: number
   stage_no: number
-  stage_key: string
   stage_name: string
   items_json: StageItem[]
   requirement: string | null

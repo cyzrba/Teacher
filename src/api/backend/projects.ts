@@ -18,7 +18,6 @@ import type {
 /* -------------------------------------------------------------------------- */
 
 export interface StageTemplatePayload {
-  stage_key: string
   stage_name: string
   description?: string | null
   default_required?: boolean

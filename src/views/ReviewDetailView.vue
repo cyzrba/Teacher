@@ -71,7 +71,7 @@ const stageRows = computed(() => {
   const byIndex = aiDims.length === stages.length
 
   return stages.map((stage, index) => {
-    const key = normalizeName(stage.stage_name ?? stage.stage_key)
+    const key = normalizeName(stage.stage_name)
     return {
       stage,
       aiDim: aiDims.find((dim) => normalizeName(dim.name) === key) ?? (byIndex ? aiDims[index] : undefined),
@@ -167,7 +167,7 @@ async function saveTeacherReview(status: 'DRAFT' | 'FINAL'): Promise<void> {
   try {
     // 每关一条维度：score 为该关得分（满分 = 该关权重），reason 为该关教师评语
     const dimensionJson: DimensionScore[] = stageRows.value.map((row) => ({
-      name: row.stage.stage_name ?? row.stage.stage_key ?? `关卡 ${row.stage.stage_no}`,
+      name: row.stage.stage_name ?? `关卡 ${row.stage.stage_no}`,
       score: teacherScores.value[row.stage.id] ?? 0,
       weight: num(row.stage.weight),
       reason: (teacherReasons.value[row.stage.id] ?? '').trim() || null,
@@ -326,7 +326,7 @@ watch(submissionId, () => {
               <!-- 关卡头 -->
               <header class="stage-card__head">
                 <span class="stage__no num">{{ row.stage.stage_no }}</span>
-                <span class="stage__name">{{ row.stage.stage_name || row.stage.stage_key }}</span>
+                <span class="stage__name">{{ row.stage.stage_name || '未命名关卡' }}</span>
                 <StatusPill
                   :tone="row.stage.is_filled ? 'done' : 'lock'"
                   :text="row.stage.is_filled ? '已填写' : '未填写'"
