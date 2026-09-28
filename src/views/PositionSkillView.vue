@@ -3,7 +3,7 @@
  * 岗位与技能体系（对接真实后端，接口文档 §6）
  *
  * 两个 Tab：
- * ① 岗位列表管理 —— 岗位增删改查（含方向标签 / 推荐层级 / 适配场景 / 热度 / 状态），
+ * ① 岗位列表管理 —— 岗位增删改查（含方向标签 / 推荐层级 / 适配场景 / 状态），
  *    并在同一个弹窗里维护「岗位关联技能点」（覆盖式写入 `/jobs/{id}/skills`）；
  * ② 技能管理 —— 技能树（四大体系）与技能点的增删改查：
  *    左栏选技能树、右栏维护该树的技能点，技能点可设前置技能（技能树的连线来源）。
@@ -19,9 +19,14 @@ import EmptyState from '@/components/EmptyState.vue'
 import ListPagination from '@/components/ListPagination.vue'
 import { usePaging } from '@/composables/usePaging'
 import { useCatalogStore } from '@/stores/catalog'
-import { fetchSkillCatalog } from '@/api/backend/catalog'
+import { fetchSkillBindings, fetchSkillCatalog } from '@/api/backend/catalog'
 import { LEVEL_LABEL, JOB_STATUS_LABEL } from '@/config/backend'
-import type { JobRead, SkillTreeNode, SkillTreeRead } from '@/api/backend/types'
+import type {
+  JobRead,
+  SkillBindingStatus,
+  SkillTreeNode,
+  SkillTreeRead,
+} from '@/api/backend/types'
 
 const route = useRoute()
 const router = useRouter()
@@ -35,8 +40,29 @@ watch(activeTab, (value) => {
 /** 技能点选择器用的「技能树 → 节点」字典 */
 const skillCatalog = ref<{ tree: SkillTreeRead; nodes: SkillTreeNode[] }[]>([])
 
+/** 绑定不全的技能点（缺岗位 / 缺项目），用于列表高亮与筛选 */
+const skillBindings = ref<SkillBindingStatus[]>([])
+const bindingMap = computed(
+  () => new Map(skillBindings.value.map((item) => [item.skill_node_id, item])),
+)
+
 async function loadSkillCatalog(): Promise<void> {
-  skillCatalog.value = await fetchSkillCatalog()
+  const [catalog, bindings] = await Promise.all([fetchSkillCatalog(), fetchSkillBindings()])
+  skillCatalog.value = catalog
+  skillBindings.value = bindings
+}
+
+function bindingOf(nodeId: number): SkillBindingStatus | undefined {
+  return bindingMap.value.get(nodeId)
+}
+
+function isUnbound(nodeId: number): boolean {
+  return bindingMap.value.has(nodeId)
+}
+
+/** 下拉选项文案：名称 + 简述（悬浮 title 里是完整描述） */
+function skillOptionLabel(node: SkillTreeNode): string {
+  return node.description ? `${node.node_name} — ${node.description}` : node.node_name
 }
 
 /* -------------------------------------------------------------------------- */
@@ -93,7 +119,6 @@ const jobForm = reactive({
   recommended_level: 'BASIC' as 'BASIC' | 'ADVANCED' | 'EXPANDED',
   scene: '',
   description: '',
-  heat: 0,
   status: 'ENABLED' as 'ENABLED' | 'DISABLED',
 })
 
@@ -110,7 +135,6 @@ async function openJobCreate(): Promise<void> {
     recommended_level: 'BASIC',
     scene: '',
     description: '',
-    heat: 0,
     status: 'ENABLED',
   })
   await loadSkillCatalog()
@@ -125,7 +149,6 @@ async function openJobEdit(row: JobRead): Promise<void> {
     recommended_level: row.recommended_level ?? 'BASIC',
     scene: row.scene ?? '',
     description: row.description ?? '',
-    heat: row.heat ?? 0,
     status: row.status,
   })
   await loadSkillCatalog()
@@ -144,7 +167,6 @@ async function submitJob(): Promise<void> {
     recommended_level: jobForm.recommended_level,
     scene: jobForm.scene.trim() || null,
     description: jobForm.description.trim() || null,
-    heat: jobForm.heat,
     status: jobForm.status,
   }
 
@@ -193,6 +215,7 @@ async function removeJob(row: JobRead): Promise<void> {
 
 const activeTreeId = ref<number | null>(null)
 const nodeKeyword = ref('')
+const bindingFilter = ref<'all' | 'missing'>('all')
 
 const activeTree = computed<SkillTreeRead | null>(
   () => store.trees.find((item) => item.id === activeTreeId.value) ?? null,
@@ -200,12 +223,14 @@ const activeTree = computed<SkillTreeRead | null>(
 
 const filteredNodes = computed(() => {
   const target = nodeKeyword.value.trim().toLowerCase()
-  if (!target) return store.nodes
-  return store.nodes.filter(
-    (item) =>
+  return store.nodes.filter((item) => {
+    if (bindingFilter.value === 'missing' && !isUnbound(item.id)) return false
+    if (!target) return true
+    return (
       item.node_name.toLowerCase().includes(target) ||
-      (item.description ?? '').toLowerCase().includes(target),
-  )
+      (item.description ?? '').toLowerCase().includes(target)
+    )
+  })
 })
 
 const {
@@ -216,7 +241,7 @@ const {
   reset: resetNodePage,
 } = usePaging(() => filteredNodes.value)
 
-watch(nodeKeyword, () => resetNodePage())
+watch([nodeKeyword, bindingFilter], () => resetNodePage())
 
 async function pickTree(tree: SkillTreeRead): Promise<void> {
   activeTreeId.value = tree.id
@@ -493,11 +518,6 @@ onMounted(async () => {
                 <span :class="{ muted: !row.scene }">{{ row.scene || '--' }}</span>
               </template>
             </el-table-column>
-            <el-table-column label="热度" width="90">
-              <template #default="{ row }">
-                <span class="num">{{ row.heat ?? 0 }}</span>
-              </template>
-            </el-table-column>
             <el-table-column label="关联技能" width="100">
               <template #default="{ row }">
                 <span class="num">{{ row.skill_count ?? 0 }}</span>
@@ -603,9 +623,21 @@ onMounted(async () => {
                     placeholder="搜索技能点名称 / 说明"
                     clearable
                   />
-                  <span class="points__stat">技能点 <b class="num">{{ store.nodes.length }}</b></span>
-                  <el-button type="primary" round @click="openNodeCreate">＋ 新建技能点</el-button>
+                  <el-select v-model="bindingFilter" class="toolbar__filter">
+                    <el-option label="全部技能点" value="all" />
+                    <el-option label="只看绑定不全" value="missing" />
+                  </el-select>
+                  <span class="points__stat">
+                    技能点 <b class="num">{{ store.nodes.length }}</b>
+                    <template v-if="skillBindings.length">
+                      · 绑定不全 <b class="num is-warn">{{ skillBindings.length }}</b>
+                    </template>
+                  </span>
                 </div>
+                <p class="points__hint">
+                  技能点只能在「实训项目管理」的关卡里、或岗位编辑里创建与绑定；
+                  绑定不全（缺岗位或缺项目）的技能点会在下方标黄，请尽快安排绑定。
+                </p>
 
                 <el-table
                   v-if="nodeRows.length > 0 || store.nodesLoading"
@@ -633,6 +665,15 @@ onMounted(async () => {
                       <span v-if="!row.prerequisite_ids?.length" class="muted">无</span>
                       <span v-else class="prereq">
                         {{ row.prerequisite_ids.map((id: number) => nodeNameOf(id)).join('、') }}
+                      </span>
+                    </template>
+                  </el-table-column>
+                  <el-table-column label="绑定状态" width="190">
+                    <template #default="{ row }">
+                      <span v-if="!bindingOf(row.id)" class="bind-ok">已绑岗位 · 已绑项目</span>
+                      <span v-else class="bind-missing">
+                        <span class="bind-missing__tag">{{ bindingOf(row.id)?.has_job ? '已绑岗位' : '缺岗位' }}</span>
+                        <span class="bind-missing__tag">{{ bindingOf(row.id)?.has_project ? '已绑项目' : '缺项目' }}</span>
                       </span>
                     </template>
                   </el-table-column>
@@ -666,8 +707,8 @@ onMounted(async () => {
 
                 <EmptyState
                   v-if="!nodeRows.length && !store.nodesLoading"
-                  :title="nodeKeyword ? '没有匹配的技能点' : '这棵技能树还没有技能点'"
-                  description="点「＋ 新建技能点」把最小能力单元加进来，可同时设置前置技能。"
+                  :title="nodeKeyword || bindingFilter === 'missing' ? '没有匹配的技能点' : '这棵技能树还没有技能点'"
+                  description="技能点在「实训项目管理」的关卡里、或岗位编辑里创建并绑定，创建后回到这里维护说明与前置技能。"
                 />
               </template>
 
@@ -713,9 +754,6 @@ onMounted(async () => {
               <el-option label="停用" value="DISABLED" />
             </el-select>
           </el-form-item>
-          <el-form-item label="热度">
-            <el-input-number v-model="jobForm.heat" :min="0" :controls="false" class="full" />
-          </el-form-item>
         </div>
 
         <el-form-item label="适配实训场景">
@@ -742,11 +780,20 @@ onMounted(async () => {
               <el-option
                 v-for="node in group.nodes"
                 :key="node.id"
-                :label="node.node_name"
+                :label="skillOptionLabel(node)"
                 :value="node.id"
-              />
+              >
+                <span class="skill-opt" :title="node.description ?? node.node_name">
+                  <span class="skill-opt__name">{{ node.node_name }}</span>
+                  <span v-if="node.description" class="skill-opt__desc">{{ node.description }}</span>
+                  <span v-if="isUnbound(node.id)" class="skill-opt__flag">未配项目</span>
+                </span>
+              </el-option>
             </el-option-group>
           </el-select>
+          <p class="form-hint">
+            技能点在项目关卡里创建；这里绑定后，岗位匹配度按这些技能点的学生进度均值计算。
+          </p>
         </el-form-item>
       </el-form>
 
@@ -1128,5 +1175,75 @@ onMounted(async () => {
   .grid-3 {
     grid-template-columns: minmax(0, 1fr);
   }
+}
+
+/* 技能点绑定状态 */
+.points__hint {
+  margin: 6px 0 10px;
+  color: var(--ink-3, #8a94a6);
+  font-size: 12.5px;
+}
+
+.toolbar__filter {
+  width: 150px;
+}
+
+.points__stat .is-warn,
+.num.is-warn {
+  color: #d48806;
+}
+
+.bind-ok {
+  color: var(--ink-3, #8a94a6);
+  font-size: 12.5px;
+}
+
+.bind-missing {
+  display: inline-flex;
+  gap: 6px;
+}
+
+.bind-missing__tag {
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: rgba(230, 162, 60, 0.16);
+  color: #b7791f;
+  font-size: 12px;
+}
+
+.skill-opt {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+}
+
+.skill-opt__name {
+  font-weight: 600;
+}
+
+.skill-opt__desc {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--ink-3, #8a94a6);
+  font-size: 12px;
+}
+
+.skill-opt__flag {
+  flex: none;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: rgba(230, 162, 60, 0.16);
+  color: #b7791f;
+  font-size: 11px;
+}
+
+.form-hint {
+  margin: 6px 0 0;
+  color: var(--ink-3, #8a94a6);
+  font-size: 12px;
 }
 </style>

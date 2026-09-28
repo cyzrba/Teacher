@@ -195,3 +195,22 @@ export function setProjectSkills(
 ): Promise<SkillTreeNode[]> {
   return put<SkillTreeNode[]>(`/projects/${projectId}/skills`, { skill_node_ids: skillNodeIds })
 }
+
+/* -------------------------------------------------------------------------- */
+/* §7.6.1 关卡所需技能（技能点亮的权威绑定）                                     */
+/* -------------------------------------------------------------------------- */
+
+export function fetchModuleSkills(projectId: number, moduleId: number): Promise<SkillTreeNode[]> {
+  return get<SkillTreeNode[]>(`/projects/${projectId}/modules/${moduleId}/skills`)
+}
+
+/** 覆盖式设置某个关卡的技能点 */
+export function setModuleSkills(
+  projectId: number,
+  moduleId: number,
+  skillNodeIds: number[],
+): Promise<SkillTreeNode[]> {
+  return put<SkillTreeNode[]>(`/projects/${projectId}/modules/${moduleId}/skills`, {
+    skill_node_ids: skillNodeIds,
+  })
+}
