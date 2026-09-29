@@ -22,9 +22,10 @@ import { useProjectsStore } from '@/stores/projects'
 import { createSkillNode, fetchJobs, fetchSkillBindings, fetchSkillCatalog } from '@/api/backend/catalog'
 import {
   addProjectModule,
+  fetchProjectSkills,
   removeProjectModule,
   reorderProjectModules,
-  setModuleSkills,
+  setProjectSkills,
   updateProjectModule,
   uploadProjectFile,
 } from '@/api/backend/projects'
@@ -152,8 +153,6 @@ interface ModuleDraft {
   requirement: string
   acceptStandard: string
   items: StageItem[]
-  /** 本关卡关联的技能点（技能点亮按关卡得分判定） */
-  skillIds: number[]
 }
 
 interface PendingFile {
@@ -179,6 +178,8 @@ const form = reactive({
 
 const moduleDrafts = ref<ModuleDraft[]>([])
 const removedModuleIds = ref<number[]>([])
+/** 项目关联的技能点：教师只在这里选一次，保存时自动绑到该项目每个关卡上 */
+const skillIds = ref<number[]>([])
 const pendingFiles = ref<PendingFile[]>([])
 const removedFileIds = ref<number[]>([])
 const templateToAdd = ref<number | null>(null)
@@ -208,6 +209,7 @@ function resetForm(): void {
   removedModuleIds.value = []
   removedFileIds.value = []
   pendingFiles.value = []
+  skillIds.value = []
   moduleDrafts.value = []
   templateToAdd.value = null
   savingHint.value = ''
@@ -222,6 +224,8 @@ function resetForm(): void {
 
 async function openCreate(): Promise<void> {
   resetForm()
+  // 每次打开都刷一次技能库：上一次新建的技能点这里要能直接选到
+  await loadCatalog()
   // 新建项目默认带上七个标准模块，权重按模块库默认值（合计 100）
   moduleDrafts.value = store.templates.map((template) => ({
     templateId: template.id,
@@ -231,13 +235,13 @@ async function openCreate(): Promise<void> {
     requirement: template.default_requirement ?? '',
     acceptStandard: template.default_accept_standard ?? '',
     items: [],
-    skillIds: [],
   }))
   dialogVisible.value = true
 }
 
 async function openEdit(row: ProjectRead): Promise<void> {
   resetForm()
+  await loadCatalog()
   editingId.value = row.id
   const detail = await store.loadDetail(row.id)
   Object.assign(form, {
@@ -256,8 +260,9 @@ async function openEdit(row: ProjectRead): Promise<void> {
     requirement: item.requirement ?? '',
     acceptStandard: item.accept_standard ?? '',
     items: (item.items_json ?? []).map((entry) => ({ title: entry.title, prompt: entry.prompt })),
-    skillIds: [...(item.skill_node_ids ?? [])],
   }))
+  // 项目关联技能：读回来后填到项目级选择框
+  skillIds.value = (await fetchProjectSkills(row.id)).map((item) => item.id)
   dialogVisible.value = true
 }
 
@@ -279,7 +284,6 @@ function addTemplateToDraft(): void {
       requirement: template.default_requirement ?? '',
       acceptStandard: template.default_accept_standard ?? '',
       items: [],
-      skillIds: [],
     },
   ]
   templateToAdd.value = null
@@ -339,15 +343,13 @@ function normalizeWeights(): void {
 
 const skillDialogVisible = ref(false)
 const skillSaving = ref(false)
-const skillTargetIndex = ref<number | null>(null)
 const skillForm = ref({
   tree_id: null as number | null,
   node_name: '',
   description: '',
 })
 
-function openCreateSkill(moduleIndex: number): void {
-  skillTargetIndex.value = moduleIndex
+function openCreateSkill(): void {
   skillForm.value = {
     tree_id: skillCatalog.value[0]?.tree.id ?? null,
     node_name: '',
@@ -392,11 +394,10 @@ async function submitSkill(): Promise<void> {
         },
       ]
     }
-    const draft = skillTargetIndex.value === null ? undefined : moduleDrafts.value[skillTargetIndex.value]
-    if (draft && !draft.skillIds.includes(node.id)) {
-      draft.skillIds = [...draft.skillIds, node.id]
+    if (!skillIds.value.includes(node.id)) {
+      skillIds.value = [...skillIds.value, node.id]
     }
-    ElMessage.success(existing ? '已复用同名技能点并绑定' : '技能点已创建并绑定到该关卡')
+    ElMessage.success(existing ? '已复用同名技能点并选中' : '技能点已创建，已保存到技能库并选中')
     skillDialogVisible.value = false
   } finally {
     skillSaving.value = false
@@ -485,7 +486,6 @@ async function submitProject(): Promise<void> {
     }
 
     const orderedIds: number[] = []
-    const moduleSkillPlan: { moduleId: number; skillIds: number[] }[] = []
     for (const draft of moduleDrafts.value) {
       const items = draft.items
         .map((entry) => ({ title: entry.title.trim(), prompt: entry.prompt.trim() }))
@@ -509,17 +509,14 @@ async function submitProject(): Promise<void> {
         currentModuleId = created.id
       }
       orderedIds.push(currentModuleId)
-      moduleSkillPlan.push({ moduleId: currentModuleId, skillIds: [...draft.skillIds] })
     }
     if (orderedIds.length > 0) {
       await reorderProjectModules(projectId, orderedIds)
     }
 
-    // ② 关卡关联技能点（覆盖式，逐个关卡保存）
-    savingHint.value = '同步关卡技能点…'
-    for (const plan of moduleSkillPlan) {
-      await setModuleSkills(projectId, plan.moduleId, plan.skillIds)
-    }
+    // ② 项目关联技能点（覆盖式）：后端会自动把这份技能绑到该项目每个关卡上
+    savingHint.value = '同步关联技能点…'
+    await setProjectSkills(projectId, skillIds.value)
 
     // ③ 附件：先解除要移除的，再上传新选的
     if (removedFileIds.value.length > 0) {
@@ -968,12 +965,46 @@ onMounted(async () => {
                 <span class="star-field__hint">{{ difficultyText }}</span>
               </div>
             </el-form-item>
-            <el-form-item label="关联技能点">
-              <p class="cell-main__desc">
-                技能点按<b>关卡</b>绑定：在下面的每个关卡里选择它培养的技能点，技能点亮按该关卡得分判定。
-              </p>
-            </el-form-item>
           </div>
+
+          <el-form-item label="关联技能点（本项目培养哪些技能，保存时会绑到下面每个关卡）">
+            <div class="skill-picker">
+              <el-select
+                v-model="skillIds"
+                class="skill-picker__select"
+                multiple
+                filterable
+                collapse-tags
+                collapse-tags-tooltip
+                placeholder="选择技能点；没有的就点右边「新建技能点」"
+              >
+                <el-option-group
+                  v-for="group in skillCatalog"
+                  :key="group.tree.id"
+                  :label="group.tree.tree_name"
+                >
+                  <el-option
+                    v-for="node in group.nodes"
+                    :key="node.id"
+                    :label="skillOptionLabel(node)"
+                    :value="node.id"
+                  >
+                    <span class="skill-opt" :title="node.description ?? node.node_name">
+                      <span class="skill-opt__name">{{ node.node_name }}</span>
+                      <span v-if="node.description" class="skill-opt__desc">{{ node.description }}</span>
+                      <span v-if="isUnbound(node.id)" class="skill-opt__flag">未配岗位</span>
+                    </span>
+                  </el-option>
+                </el-option-group>
+              </el-select>
+              <button class="icon-op skill-picker__btn" type="button" @click="openCreateSkill">
+                ＋ 新建技能点
+              </button>
+            </div>
+            <p class="form-hint">
+              新建的技能点会保存到技能库，下次建项目或改岗位时可以直接选到；技能点亮按「该关卡得分率 ≥ 及格线」判定。
+            </p>
+          </el-form-item>
 
           <el-form-item label="项目描述" class="form-item--last">
             <el-input
@@ -1065,44 +1096,6 @@ onMounted(async () => {
                 </label>
                 <el-input v-model="draft.requirement" placeholder="作答要求，如：不少于 500 字" />
                 <el-input v-model="draft.acceptStandard" placeholder="验收标准，如：指标可量化" />
-              </div>
-
-              <div class="module-skills">
-                <div class="module-skills__head">
-                  <span class="fld__label">
-                    本关卡技能点（技能点亮按该关卡得分判定：得分率 ≥ 及格线才算这个关卡达标）
-                  </span>
-                  <button class="icon-op" type="button" @click="openCreateSkill(index)">
-                    ＋ 新建技能点
-                  </button>
-                </div>
-                <el-select
-                  v-model="draft.skillIds"
-                  class="full"
-                  multiple
-                  filterable
-                  collapse-tags
-                  placeholder="选择这个关卡培养的技能点"
-                >
-                  <el-option-group
-                    v-for="group in skillCatalog"
-                    :key="group.tree.id"
-                    :label="group.tree.tree_name"
-                  >
-                    <el-option
-                      v-for="node in group.nodes"
-                      :key="node.id"
-                      :label="skillOptionLabel(node)"
-                      :value="node.id"
-                    >
-                      <span class="skill-opt" :title="node.description ?? node.node_name">
-                        <span class="skill-opt__name">{{ node.node_name }}</span>
-                        <span v-if="node.description" class="skill-opt__desc">{{ node.description }}</span>
-                        <span v-if="isUnbound(node.id)" class="skill-opt__flag">未配岗位</span>
-                      </span>
-                    </el-option>
-                  </el-option-group>
-                </el-select>
               </div>
 
               <div class="items">
@@ -1634,19 +1627,28 @@ onMounted(async () => {
   }
 }
 
-/* 关卡技能点绑定 */
-.module-skills {
-  margin-top: 10px;
-  padding-top: 10px;
-  border-top: 1px dashed var(--line-2, rgba(0, 0, 0, 0.08));
-}
-
-.module-skills__head {
+/* 项目关联技能点：一个选择框 + 新建按钮 */
+.skill-picker {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   gap: 10px;
-  margin-bottom: 6px;
+  width: 100%;
+}
+
+.skill-picker__select {
+  flex: 1;
+  min-width: 0;
+}
+
+.skill-picker__btn {
+  flex: none;
+  white-space: nowrap;
+}
+
+.form-hint {
+  margin: 6px 0 0;
+  color: var(--ink-3, #8a94a6);
+  font-size: 12px;
 }
 
 .skill-opt {
