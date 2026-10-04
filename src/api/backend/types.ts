@@ -152,7 +152,6 @@ export interface JobRead {
   recommended_level: 'BASIC' | 'ADVANCED' | 'EXPANDED' | null
   scene: string | null
   description: string | null
-  heat: number
   status: 'ENABLED' | 'DISABLED'
   skill_count?: number
 }
@@ -211,6 +210,19 @@ export interface ProjectModule {
   required: boolean
   weight: string
   default_weight: string
+  /** 该关卡关联的技能点（技能点亮按关卡得分判定） */
+  skill_node_ids: number[]
+}
+
+/** 技能点的绑定情况：是否已被岗位 / 项目（关卡）引用 */
+export interface SkillBindingStatus {
+  skill_node_id: number
+  node_name: string
+  tree_id: number
+  tree_name: string | null
+  description: string | null
+  has_job: boolean
+  has_project: boolean
 }
 
 export interface ProjectFile {

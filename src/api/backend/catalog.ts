@@ -5,7 +5,7 @@
 
 import { del, get, patch, post, put } from './client'
 import type { ApiPage } from './client'
-import type { JobRead, SkillTreeNode, SkillTreeRead } from './types'
+import type { JobRead, SkillBindingStatus, SkillTreeNode, SkillTreeRead } from './types'
 
 export interface JobPayload {
   job_name: string
@@ -13,7 +13,6 @@ export interface JobPayload {
   recommended_level?: 'BASIC' | 'ADVANCED' | 'EXPANDED' | null
   scene?: string | null
   description?: string | null
-  heat?: number
   status?: 'ENABLED' | 'DISABLED'
   created_by?: number | null
 }
@@ -153,4 +152,11 @@ export async function fetchSkillCatalog(): Promise<
     }),
   )
   return groups.filter((group) => group.nodes.length > 0)
+}
+
+/** 技能点绑定情况：缺岗位 / 缺项目 / 两端都缺（不传 missing = 缺任意一端） */
+export function fetchSkillBindings(
+  missing?: 'job' | 'project' | 'both',
+): Promise<SkillBindingStatus[]> {
+  return get<SkillBindingStatus[]>('/skill-node-bindings', missing ? { missing } : undefined)
 }
